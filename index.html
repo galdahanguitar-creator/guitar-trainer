@@ -879,67 +879,58 @@ function detectLoop() {
   raf = requestAnimationFrame(detectLoop);
 }
 
-// McLeod Pitch Method (MPM) — much more robust for guitar, especially high notes
+// Pitch detector — ACF with guitar-range focus, works on mobile (no zero-crossing dependency)
 function autoCorrelate(buf, sr) {
   const N = buf.length;
 
-  // RMS check — lower threshold so quiet high strings register
+  // RMS check
   let rms = 0;
   for (let i = 0; i < N; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / N);
   if (rms < 0.003) return -1;
 
-  const half = Math.floor(N / 2);
+  // DC offset removal — critical for mobile mics
+  let mean = 0;
+  for (let i = 0; i < N; i++) mean += buf[i];
+  mean /= N;
+  const sig = new Float32Array(N);
+  for (let i = 0; i < N; i++) sig[i] = buf[i] - mean;
 
-  // ── Step 1: Normalized Square Difference Function (NSDF) ──
-  // nsdf[tau] = 2*acf[tau] / (sum(x[i]^2, 0..N-tau-1) + sum(x[i+tau]^2, 0..N-tau-1))
-  // Running energy: start with full signal energy × 2, subtract as tau grows
-  let m = 0;
-  for (let i = 0; i < N; i++) m += 2 * buf[i] * buf[i];
+  // Guitar frequency range → lag range
+  const minLag = Math.max(2, Math.floor(sr / 1320)); // ~1320 Hz max
+  const maxLag = Math.min(Math.floor(N / 2) - 1, Math.ceil(sr / 72)); // ~72 Hz min
+  const useN   = Math.floor(N * 0.7); // use 70% of buffer — fast enough on mobile
 
-  const nsdf = new Float32Array(half);
-  for (let tau = 0; tau < half; tau++) {
-    if (tau > 0) {
-      m -= buf[tau - 1] * buf[tau - 1] + buf[N - tau] * buf[N - tau];
+  // Autocorrelation only for lags in guitar range
+  const C = new Float32Array(maxLag + 2);
+  for (let lag = minLag; lag <= maxLag + 1; lag++) {
+    let s = 0;
+    const end = useN - lag;
+    for (let j = 0; j < end; j++) s += sig[j] * sig[j + lag];
+    C[lag] = s;
+  }
+
+  // Global max in range
+  let maxC = 0;
+  for (let lag = minLag; lag <= maxLag; lag++) if (C[lag] > maxC) maxC = C[lag];
+  if (maxC < 1e-6) return -1;
+
+  // First local peak ≥ 80% of global max
+  // (lowest lag = highest frequency, avoids octave-down errors)
+  let bestLag = -1;
+  for (let lag = minLag + 1; lag < maxLag; lag++) {
+    if (C[lag] >= 0.8 * maxC && C[lag] > C[lag - 1] && C[lag] >= C[lag + 1]) {
+      bestLag = lag;
+      break;
     }
-    if (m < 1e-8) { nsdf[tau] = 0; continue; }
-    let acf = 0;
-    for (let i = 0; i < N - tau; i++) acf += buf[i] * buf[i + tau];
-    nsdf[tau] = (2 * acf) / m;
   }
+  if (bestLag < 2 || bestLag >= maxLag) return -1;
 
-  // ── Step 2: Find key maxima (peaks in positive regions) ──
-  const keyMaxima = []; // [tau, value]
-  let inPositive = false;
-  let localMax = 0, localMaxTau = -1;
-
-  for (let tau = 1; tau < half; tau++) {
-    if (nsdf[tau] > 0) {
-      inPositive = true;
-      if (nsdf[tau] > localMax) { localMax = nsdf[tau]; localMaxTau = tau; }
-    } else if (inPositive) {
-      // just left a positive region — record peak
-      if (localMaxTau > 0) keyMaxima.push([localMaxTau, localMax]);
-      inPositive = false; localMax = 0; localMaxTau = -1;
-    }
-  }
-  if (inPositive && localMaxTau > 0) keyMaxima.push([localMaxTau, localMax]);
-
-  if (keyMaxima.length === 0) return -1;
-
-  // ── Step 3: Pick best tau — first peak ≥ 80% of global max ──
-  const globalMax = Math.max(...keyMaxima.map(([, v]) => v));
-  const K = 0.8; // tolerance
-  let bestTau = -1;
-  for (const [tau, val] of keyMaxima) {
-    if (val >= K * globalMax) { bestTau = tau; break; }
-  }
-  if (bestTau < 2 || bestTau >= half - 1) return -1;
-
-  // ── Step 4: Parabolic interpolation for sub-sample precision ──
-  const v0 = nsdf[bestTau - 1], v1 = nsdf[bestTau], v2 = nsdf[bestTau + 1];
-  const denom = 2 * (2 * v1 - v0 - v2);
-  const T0 = denom !== 0 ? bestTau + (v2 - v0) / denom : bestTau;
+  // Parabolic interpolation for precision
+  const x1 = C[bestLag-1], x2 = C[bestLag], x3 = C[bestLag+1];
+  const a  = (x1 + x3 - 2*x2) / 2;
+  const b  = (x3 - x1) / 2;
+  const T0 = a !== 0 ? bestLag - b / (2*a) : bestLag;
 
   const freq = sr / T0;
   return (freq >= 72 && freq <= 1320) ? freq : -1;
