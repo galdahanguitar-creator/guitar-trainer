@@ -298,10 +298,48 @@
   }
   .res-btn:hover { transform: scale(1.04); }
 
-  /* Responsive */
-  @media (max-width: 500px) {
-    .level-grid { grid-template-columns: repeat(2, 1fr); }
-    #target-note { font-size: 3.5em; }
+  /* ── Responsive (mobile) ── */
+  @media (max-width: 600px) {
+    body { padding: 12px 10px 32px; }
+    h1   { font-size: 1.5em; }
+    .tagline { margin-bottom: 18px; }
+
+    /* Level screen */
+    .level-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .lvl-btn { padding: 14px 8px; }
+    .lvl-btn .sname { font-size: 1.15em; }
+
+    /* Topbar — wrap nicely */
+    .topbar { flex-wrap: wrap; gap: 6px; }
+    #level-label { font-size: 0.8em; width: 100%; text-align: center; order: 3; }
+    .score-box   { font-size: 0.82em; }
+
+    /* Prompt card — stack vertically */
+    .prompt-card { padding: 14px 10px 12px; }
+    .prompt-body { flex-direction: column; gap: 10px; align-items: center; }
+    #target-note { font-size: 3.8em; }
+
+    /* String indicator fills full width */
+    #string-indicator { width: 100% !important; max-width: 340px; }
+
+    /* Fretboard — allow horizontal scroll, reduce padding */
+    #fretboard-wrap { padding: 10px 4px 18px; }
+
+    /* Game HUD */
+    #game-hud { padding: 8px 14px; }
+    .game-progress { font-size: 1em; }
+    #timer-wrap { width: 54px; height: 54px; }
+    #timer-wrap svg { width: 54px; height: 54px; }
+    #timer-num { font-size: 1.2em; }
+
+    /* Mic button */
+    #mic-btn { padding: 13px 30px; font-size: 0.95em; }
+
+    /* Results */
+    .res-scores { gap: 12px; }
+    .res-item   { padding: 14px 18px; font-size: 1em; }
+    #res-title  { font-size: 1.4em; }
+    #res-emoji  { font-size: 3.5em; }
   }
 </style>
 </head>
@@ -603,8 +641,15 @@ function drawBoard(state, played) {
   // state: null = hide dots, 'correct' = green, 'wrong' = show correct in green
   const svg = document.getElementById('fb');
   svg.innerHTML = '';
-  svg.setAttribute('width',  FB.x0 + FB.w + 16);
-  svg.setAttribute('height', FB.y0 + FB.h + 28);
+
+  // Responsive: scale fretboard to fit container
+  const totalW = FB.x0 + FB.w + 16;
+  const totalH = FB.y0 + FB.h + 28;
+  const containerW = (document.getElementById('fretboard-wrap').clientWidth || totalW) - 20;
+  const scale = Math.min(1, containerW / totalW);
+  svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+  svg.style.width  = Math.round(totalW * scale) + 'px';
+  svg.style.height = Math.round(totalH * scale) + 'px';
 
   const fW = FB.w / MAX_FRET;                  // fret width
   const sS = FB.h / 5;                         // string spacing
@@ -753,9 +798,11 @@ async function startMic() {
     micStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
     audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
     analyser  = audioCtx.createAnalyser();
-    analyser.fftSize = 4096;
+    analyser.fftSize = 2048; // smaller = faster on mobile
     const src = audioCtx.createMediaStreamSource(micStream);
     src.connect(analyser);
+    // iOS Safari: resume AudioContext after user gesture
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
     listening = true;
     const btn = document.getElementById('mic-btn');
     btn.textContent = '🔴 עצור האזנה';
@@ -960,11 +1007,15 @@ function updateStringIndicator() {
   if (!svg) return;
   svg.innerHTML = '';
 
+  // Fixed internal coordinate space — CSS/viewBox handles scaling
+  const W = 215, H = 122;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
   const yStart = 13, yStep = 17;
   const lineX1 = 18, lineX2 = 130;
 
-  // subtle background
-  svg.appendChild(svgEl('rect', { x:0, y:0, width:215, height:122, rx:10,
+  svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, rx:10,
     fill:'rgba(0,0,0,0.28)', stroke:'rgba(255,255,255,0.07)', 'stroke-width':1 }));
 
   for (let i = 0; i < 6; i++) {
@@ -973,7 +1024,6 @@ function updateStringIndicator() {
     const col = isTarget ? '#f5a623' : 'rgba(255,255,255,0.22)';
     const sw  = isTarget ? 3.5 : (0.65 + i * 0.28);
 
-    // glow behind target
     if (isTarget) {
       svg.appendChild(svgEl('line', {
         x1: lineX1-2, y1: y, x2: lineX2+2, y2: y,
@@ -981,13 +1031,11 @@ function updateStringIndicator() {
       }));
     }
 
-    // string line
     svg.appendChild(svgEl('line', {
       x1:lineX1, y1:y, x2:lineX2, y2:y,
       stroke:col, 'stroke-width':sw
     }));
 
-    // triangle arrow for target
     if (isTarget) {
       svg.appendChild(svgEl('polygon', {
         points:`${lineX1-11},${y-5} ${lineX1-2},${y} ${lineX1-11},${y+5}`,
@@ -995,7 +1043,6 @@ function updateStringIndicator() {
       }));
     }
 
-    // Hebrew label
     svg.appendChild(svgEl('text', {
       x: lineX2 + 9, y: y + 4,
       fill: isTarget ? '#f5a623' : 'rgba(255,255,255,0.38)',
