@@ -3,45 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎸 Guitar Note Trainer</title>
+<title>🎸 מאמן תווים לגיטרה</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap');
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
-    min-height: 100vh;
-    color: #e8e8f0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 16px 40px;
+    font-family: 'Heebo', 'Segoe UI', Arial, sans-serif;
+    background: #ffffff;
+    color: #2a2520;
     direction: rtl;
   }
 
   h1 {
-    font-size: 2em;
+    font-size: 1.8em;
+    font-weight: 900;
     color: #f5a623;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     margin-bottom: 4px;
+    text-align: center;
   }
-  .tagline { color: #888; font-size: 0.9em; margin-bottom: 32px; }
+  .tagline { color: #8a8078; font-size: 0.9em; margin-bottom: 28px; text-align: center; }
 
-  #app { width: 100%; max-width: 840px; }
+  #app {
+    width: 100%;
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+  }
 
-  /* ── Level Screen ── */
-  #level-screen h2 { text-align: center; margin-bottom: 20px; font-size: 1.3em; color: #ccc; }
+  #level-screen h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    color: #8a8078;
+    font-weight: 400;
+  }
   .level-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 10px;
   }
   .lvl-btn {
-    background: rgba(255,255,255,0.06);
-    border: 2px solid rgba(255,255,255,0.12);
-    color: #e0e0f0;
+    background: #ffffff;
+    border: 1.5px solid #e8e2d8;
+    color: #2a2520;
     padding: 20px 12px;
-    border-radius: 14px;
+    border-radius: 12px;
     cursor: pointer;
     font-family: inherit;
     transition: all 0.2s;
@@ -49,31 +58,36 @@
     line-height: 1.5;
   }
   .lvl-btn:hover {
-    background: rgba(245,166,35,0.15);
+    background: rgba(245,166,35,0.06);
     border-color: #f5a623;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(245,166,35,0.2);
+    box-shadow: 0 4px 16px rgba(245,166,35,0.15);
   }
-  .lvl-btn .sname { font-size: 1.4em; font-weight: bold; color: #f5a623; display: block; }
-  .lvl-btn .sdesc { font-size: 0.82em; color: #aaa; }
-  .lvl-btn.all-btn { grid-column: 1 / -1; padding: 16px; }
-  .lvl-btn.all-btn .sname { font-size: 1.2em; }
+  .lvl-btn .sname { font-size: 1.2em; font-weight: 700; color: #f5a623; display: block; }
+  .lvl-btn .sdesc { font-size: 0.82em; color: #8a8078; }
+  .lvl-btn.all-btn {
+    grid-column: 1 / -1;
+    padding: 16px;
+    background: rgba(245,166,35,0.05);
+    border-color: rgba(245,166,35,0.35);
+  }
+  .lvl-btn.all-btn .sname { font-size: 1.1em; }
+  .lvl-btn.all-btn:hover { background: rgba(245,166,35,0.1); }
 
-  /* ── Game Screen ── */
   #game-screen { display: none; }
 
   .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
     gap: 8px;
   }
   .back-btn {
     background: none;
-    border: 1px solid #555;
-    color: #aaa;
+    border: 1.5px solid #e8e2d8;
+    color: #8a8078;
     padding: 8px 18px;
     border-radius: 8px;
     cursor: pointer;
@@ -81,24 +95,22 @@
     font-size: 0.9em;
     transition: all 0.2s;
   }
-  .back-btn:hover { border-color: #f5a623; color: #f5a623; }
+  .back-btn:hover { border-color: #f5a623; color: #c97d0a; }
 
-  .score-box { font-size: 0.9em; color: #aaa; text-align: center; }
+  .score-box { font-size: 0.9em; color: #8a8078; text-align: center; }
   .score-box b { color: #f5a623; }
+  #level-label { font-size: 0.95em; color: #f5a623; font-weight: 700; }
 
-  #level-label { font-size: 0.95em; color: #f5a623; font-weight: bold; }
-
-  /* Prompt card */
   .prompt-card {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 18px;
-    padding: 28px 20px 20px;
+    background: #faf8f4;
+    border: 1.5px solid #e8e2d8;
+    border-radius: 14px;
+    padding: 24px 20px 18px;
     text-align: center;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     position: relative;
   }
-  .prompt-label { color: #888; font-size: 0.95em; margin-bottom: 6px; }
+  .prompt-label { color: #8a8078; font-size: 0.95em; margin-bottom: 6px; }
 
   #target-note {
     font-size: 5em;
@@ -106,7 +118,6 @@
     color: #f5a623;
     line-height: 1;
     letter-spacing: -2px;
-    text-shadow: 0 0 40px rgba(245,166,35,0.4);
     transition: all 0.3s;
   }
 
@@ -122,10 +133,9 @@
     margin-top: 8px;
     height: 22px;
     font-size: 0.9em;
-    color: #888;
+    color: #8a8078;
   }
 
-  /* Feedback */
   #feedback-zone {
     text-align: center;
     min-height: 52px;
@@ -134,72 +144,69 @@
     justify-content: center;
     margin-bottom: 10px;
   }
-  #feedback-msg { font-size: 1.6em; font-weight: bold; transition: all 0.3s; }
-  .fb-ok  { color: #4caf50; }
-  .fb-bad { color: #ef5350; }
+  #feedback-msg { font-size: 1.5em; font-weight: 700; transition: all 0.3s; }
+  .fb-ok  { color: #3d8c40; }
+  .fb-bad { color: #c0392b; }
 
-  /* Fretboard */
   #fretboard-wrap {
-    background: rgba(0,0,0,0.25);
-    border-radius: 14px;
-    padding: 18px 10px 24px;
-    margin-bottom: 16px;
+    background: #f0ece4;
+    border: 1.5px solid #e8e2d8;
+    border-radius: 12px;
+    padding: 16px 8px 22px;
+    margin-bottom: 14px;
     overflow-x: auto;
     direction: ltr;
   }
   #fb { display: block; margin: 0 auto; }
 
-  /* Volume meter */
   .meter-row {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 14px;
   }
-  .meter-label { font-size: 0.78em; color: #666; white-space: nowrap; }
+  .meter-label { font-size: 0.78em; color: #8a8078; white-space: nowrap; }
   .meter-track {
     flex: 1;
     height: 6px;
-    background: rgba(255,255,255,0.08);
+    background: #e8e2d8;
     border-radius: 3px;
     overflow: hidden;
   }
   #vol-bar {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    background: linear-gradient(90deg, #3d8c40, #6abf6e);
     border-radius: 3px;
     transition: width 0.08s;
   }
 
-  /* Mic button */
   #mic-btn {
     display: block;
     margin: 0 auto;
     padding: 14px 44px;
-    background: linear-gradient(135deg, #e94560, #c0392b);
+    background: #e94560;
     border: none;
     color: white;
     font-size: 1.05em;
     font-family: inherit;
-    font-weight: bold;
+    font-weight: 700;
     border-radius: 30px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 20px rgba(233,69,96,0.35);
+    box-shadow: 0 4px 16px rgba(233,69,96,0.2);
   }
-  #mic-btn:hover { transform: scale(1.04); box-shadow: 0 6px 28px rgba(233,69,96,0.5); }
+  #mic-btn:hover { transform: scale(1.04); box-shadow: 0 6px 22px rgba(233,69,96,0.32); }
   #mic-btn.on {
-    background: linear-gradient(135deg, #388e3c, #4caf50);
-    box-shadow: 0 4px 20px rgba(76,175,80,0.4);
+    background: #3d8c40;
+    box-shadow: 0 4px 16px rgba(61,140,64,0.25);
     animation: glow 2s ease-in-out infinite;
   }
   @keyframes glow {
-    0%,100% { box-shadow: 0 4px 20px rgba(76,175,80,0.3); }
-    50%      { box-shadow: 0 4px 30px rgba(76,175,80,0.7); }
+    0%,100% { box-shadow: 0 4px 16px rgba(61,140,64,0.2); }
+    50%      { box-shadow: 0 4px 28px rgba(61,140,64,0.5); }
   }
 
-  /* Celebration */
   @keyframes pop {
     0%   { transform: scale(1); }
     50%  { transform: scale(1.25); }
@@ -207,15 +214,14 @@
   }
   .celebrate { animation: pop 0.4s ease; }
 
-  /* ── Mode Toggle ── */
   .mode-toggle {
-    display: flex; gap: 10px; justify-content: center; margin-bottom: 22px;
+    display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;
   }
   .mode-btn {
-    padding: 10px 28px;
-    border: 2px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.05);
-    color: #aaa;
+    padding: 9px 26px;
+    border: 1.5px solid #e8e2d8;
+    background: #ffffff;
+    color: #8a8078;
     border-radius: 30px;
     cursor: pointer;
     font-family: inherit;
@@ -223,130 +229,112 @@
     transition: all 0.2s;
   }
   .mode-btn.active {
-    background: rgba(245,166,35,0.18);
+    background: rgba(245,166,35,0.1);
     border-color: #f5a623;
-    color: #f5a623;
-    font-weight: bold;
+    color: #c97d0a;
+    font-weight: 700;
   }
-  .mode-btn:hover { border-color: #f5a623; color: #f5a623; }
+  .mode-btn:hover { border-color: #f5a623; color: #c97d0a; }
 
-  /* ── Game HUD ── */
   #game-hud {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    background: #faf8f4;
+    border: 1.5px solid #e8e2d8;
+    border-radius: 12px;
     padding: 10px 22px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
-  .game-progress { font-size: 1.3em; color: #ccc; }
-  .game-progress b { color: #f5a623; font-size: 1.5em; }
-  #timer-wrap {
-    position: relative; width: 64px; height: 64px;
-  }
+  .game-progress { font-size: 1.2em; color: #8a8078; }
+  .game-progress b { color: #f5a623; font-size: 1.4em; }
+  #timer-wrap { position: relative; width: 64px; height: 64px; }
   #timer-num {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     font-size: 1.5em;
     font-weight: 900;
-    color: #4caf50;
+    color: #3d8c40;
     transition: color 0.4s;
   }
 
-  /* ── Results ── */
   #results-screen {
     text-align: center;
     padding: 30px 16px 20px;
+    background: #faf8f4;
+    border: 1.5px solid #e8e2d8;
+    border-radius: 14px;
   }
   #res-emoji { font-size: 4.5em; margin-bottom: 10px; }
-  #res-title { color: #f5a623; font-size: 1.8em; margin-bottom: 28px; }
+  #res-title { color: #f5a623; font-size: 1.8em; margin-bottom: 28px; font-weight: 900; }
   .res-scores {
     display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;
   }
   .res-item {
-    font-size: 1.2em;
+    font-size: 1.1em;
     padding: 18px 30px;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1.5px solid #e8e2d8;
+    color: #2a2520;
   }
   .res-item b { font-size: 1.8em; display: block; margin-top: 4px; }
-  .res-item.ok  b { color: #4caf50; }
-  .res-item.bad b { color: #ef5350; }
-  .res-of { font-size: 0.8em; color: #666; }
+  .res-item.ok  b { color: #3d8c40; }
+  .res-item.bad b { color: #c0392b; }
+  .res-of { font-size: 0.8em; color: #8a8078; }
   .res-buttons { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
   .res-btn {
-    padding: 14px 36px;
+    padding: 12px 32px;
     border-radius: 30px;
     font-family: inherit;
     font-size: 1em;
     cursor: pointer;
     transition: all 0.2s;
-    background: rgba(255,255,255,0.08);
-    color: #ccc;
-    border: 1px solid rgba(255,255,255,0.2);
+    background: #ffffff;
+    color: #8a8078;
+    border: 1.5px solid #e8e2d8;
   }
   .res-btn.primary {
-    background: linear-gradient(135deg, #f5a623, #e0911a);
-    color: #111;
-    font-weight: bold;
+    background: #f5a623;
+    color: #ffffff;
+    font-weight: 700;
     border: none;
-    box-shadow: 0 4px 18px rgba(245,166,35,0.35);
+    box-shadow: 0 4px 14px rgba(245,166,35,0.3);
   }
-  .res-btn:hover { transform: scale(1.04); }
+  .res-btn:hover { transform: scale(1.03); }
 
-  /* ── Responsive (mobile) ── */
   @media (max-width: 600px) {
-    body { padding: 12px 10px 32px; }
-    h1   { font-size: 1.5em; }
+    h1 { font-size: 1.5em; }
     .tagline { margin-bottom: 18px; }
-
-    /* Level screen */
     .level-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .lvl-btn { padding: 14px 8px; }
-    .lvl-btn .sname { font-size: 1.15em; }
-
-    /* Topbar — wrap nicely */
+    .lvl-btn .sname { font-size: 1.05em; }
     .topbar { flex-wrap: wrap; gap: 6px; }
     #level-label { font-size: 0.8em; width: 100%; text-align: center; order: 3; }
-    .score-box   { font-size: 0.82em; }
-
-    /* Prompt card — stack vertically */
+    .score-box { font-size: 0.82em; }
     .prompt-card { padding: 14px 10px 12px; }
     .prompt-body { flex-direction: column; gap: 10px; align-items: center; }
     #target-note { font-size: 3.8em; }
-
-    /* String indicator fills full width */
     #string-indicator { width: 100% !important; max-width: 340px; }
-
-    /* Fretboard — allow horizontal scroll, reduce padding */
     #fretboard-wrap { padding: 10px 4px 18px; }
-
-    /* Game HUD */
     #game-hud { padding: 8px 14px; }
     .game-progress { font-size: 1em; }
     #timer-wrap { width: 54px; height: 54px; }
     #timer-wrap svg { width: 54px; height: 54px; }
     #timer-num { font-size: 1.2em; }
-
-    /* Mic button */
     #mic-btn { padding: 13px 30px; font-size: 0.95em; }
-
-    /* Results */
     .res-scores { gap: 12px; }
-    .res-item   { padding: 14px 18px; font-size: 1em; }
-    #res-title  { font-size: 1.4em; }
-    #res-emoji  { font-size: 3.5em; }
+    .res-item { padding: 14px 18px; font-size: 1em; }
+    #res-title { font-size: 1.4em; }
+    #res-emoji { font-size: 3.5em; }
   }
 </style>
 </head>
 <body>
 
-<h1>🎸 Guitar Note Trainer</h1>
-<p class="tagline">אימון תווים — בנה את מפת הגריף שלך</p>
+<h1>🎸 מאמן תווים לגיטרה</h1>
+<p class="tagline">אימון תווים — בנה את מפת הצוואר שלך</p>
 
 <div id="app">
 
@@ -358,13 +346,13 @@
       <button class="mode-btn" id="btn-game" onclick="setMode(true)">⚡ מצב משחק</button>
     </div>
     <div class="level-grid">
-      <button class="lvl-btn" onclick="startLevel(1)"><span class="sname">מיתר 1</span><span class="sdesc">מי גבוה · E4</span></button>
-      <button class="lvl-btn" onclick="startLevel(2)"><span class="sname">מיתר 2</span><span class="sdesc">סי · B3</span></button>
-      <button class="lvl-btn" onclick="startLevel(3)"><span class="sname">מיתר 3</span><span class="sdesc">סול · G3</span></button>
-      <button class="lvl-btn" onclick="startLevel(4)"><span class="sname">מיתר 4</span><span class="sdesc">רה · D3</span></button>
-      <button class="lvl-btn" onclick="startLevel(5)"><span class="sname">מיתר 5</span><span class="sdesc">לה · A2</span></button>
-      <button class="lvl-btn" onclick="startLevel(6)"><span class="sname">מיתר 6</span><span class="sdesc">מי נמוך · E2</span></button>
-      <button class="lvl-btn all-btn" onclick="startLevel(0)"><span class="sname">⚔️ כל המיתרים</span><span class="sdesc">אתגר מלא — כל הגריף</span></button>
+      <button class="lvl-btn" onclick="startLevel(1)"><span class="sname">מיתר 1</span><span class="sdesc">מי גבוה</span></button>
+      <button class="lvl-btn" onclick="startLevel(2)"><span class="sname">מיתר 2</span><span class="sdesc">סי</span></button>
+      <button class="lvl-btn" onclick="startLevel(3)"><span class="sname">מיתר 3</span><span class="sdesc">סול</span></button>
+      <button class="lvl-btn" onclick="startLevel(4)"><span class="sname">מיתר 4</span><span class="sdesc">רה</span></button>
+      <button class="lvl-btn" onclick="startLevel(5)"><span class="sname">מיתר 5</span><span class="sdesc">לה</span></button>
+      <button class="lvl-btn" onclick="startLevel(6)"><span class="sname">מיתר 6</span><span class="sdesc">מי נמוך</span></button>
+      <button class="lvl-btn all-btn" onclick="startLevel(0)"><span class="sname">⚔️ כל המיתרים</span><span class="sdesc">אתגר מלא — כל הצוואר</span></button>
     </div>
   </div>
 
@@ -373,11 +361,11 @@
 
     <!-- Game HUD (shown only in game mode) -->
     <div id="game-hud" style="display:none;">
-      <div class="game-progress">תו <b id="note-num">1</b><span style="color:#666"> / 10</span></div>
+      <div class="game-progress">תו <b id="note-num">1</b><span style="color:#8a8078"> / 10</span></div>
       <div id="timer-wrap">
         <svg viewBox="0 0 64 64" width="64" height="64">
-          <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/>
-          <circle id="timer-arc" cx="32" cy="32" r="27" fill="none" stroke="#4caf50" stroke-width="5"
+          <circle cx="32" cy="32" r="27" fill="none" stroke="#e8e2d8" stroke-width="5"/>
+          <circle id="timer-arc" cx="32" cy="32" r="27" fill="none" stroke="#3d8c40" stroke-width="5"
             stroke-dasharray="169.6" stroke-dashoffset="0" stroke-linecap="round"
             transform="rotate(-90 32 32)"/>
         </svg>
@@ -440,7 +428,7 @@ const HE_NOTES = ['דו','דו♯','רה','רה♯','מי','פה','פה♯','ס�
 // Open-string MIDI for strings 1-6
 const OPEN_MIDI = [64, 59, 55, 50, 45, 40];
 const STRING_LABELS   = ['מיתר 1 (מי גבוה)', 'מיתר 2 (סי)', 'מיתר 3 (סול)', 'מיתר 4 (רה)', 'מיתר 5 (לה)', 'מיתר 6 (מי נמוך)'];
-const STRING_SHORT    = ['E4','B3','G3','D3','A2','E2'];
+const STRING_SHORT    = ['מי4','סי3','סול3','רה3','לה2','מי2'];
 const STRING_HE_FULL  = ['מי גבוה','סי','סול','רה','לה','מי נמוך'];
 
 const MAX_FRET = 11;
@@ -698,7 +686,7 @@ function drawBoard(state, played) {
   for (let f = 0; f <= MAX_FRET; f++) {
     const x = f === 0 ? FB.x0 - FB.nutW/2 : FB.x0 + (f-0.5)*fW;
     svg.appendChild(svgEl('text',
-      { x, y: FB.y0+FB.h+20, 'text-anchor':'middle', fill:'#aaa', 'font-size':11, 'font-family':'monospace' },
+      { x, y: FB.y0+FB.h+20, 'text-anchor':'middle', fill:'#8a8078', 'font-size':11, 'font-family':'monospace' },
       f.toString()));
   }
 
@@ -706,7 +694,7 @@ function drawBoard(state, played) {
   for (let s = 0; s < 6; s++) {
     svg.appendChild(svgEl('text', {
       x: FB.x0-FB.nutW-6, y: FB.y0+s*sS+4,
-      'text-anchor':'end', fill:'#9a8a7a', 'font-size':11, 'font-family':'monospace'
+      'text-anchor':'end', fill:'#7a6a5a', 'font-size':11, 'font-family':'monospace'
     }, STRING_SHORT[s]));
   }
 
@@ -994,7 +982,7 @@ function updateTimerDisplay() {
   const circ   = 2 * Math.PI * 27;
   const offset = circ * (1 - gameTimeLeft / GAME_SECS);
   arcEl.setAttribute('stroke-dashoffset', offset);
-  const col = gameTimeLeft > 6 ? '#4caf50' : gameTimeLeft > 3 ? '#f5a623' : '#ef5350';
+  const col = gameTimeLeft > 6 ? '#3d8c40' : gameTimeLeft > 3 ? '#f5a623' : '#c0392b';
   arcEl.setAttribute('stroke', col);
   numEl.style.color = col;
 }
@@ -1039,12 +1027,12 @@ function updateStringIndicator() {
   const lineX1 = 18, lineX2 = 130;
 
   svg.appendChild(svgEl('rect', { x:0, y:0, width:W, height:H, rx:10,
-    fill:'rgba(0,0,0,0.28)', stroke:'rgba(255,255,255,0.07)', 'stroke-width':1 }));
+    fill:'#f9f5ee', stroke:'#e8e2d8', 'stroke-width':1 }));
 
   for (let i = 0; i < 6; i++) {
     const y = yStart + i * yStep;
     const isTarget = targetNote && (i + 1) === targetNote.string;
-    const col = isTarget ? '#f5a623' : 'rgba(255,255,255,0.22)';
+    const col = isTarget ? '#f5a623' : '#c8bfb4';
     const sw  = isTarget ? 3.5 : (0.65 + i * 0.28);
 
     if (isTarget) {
@@ -1068,7 +1056,7 @@ function updateStringIndicator() {
 
     svg.appendChild(svgEl('text', {
       x: lineX2 + 9, y: y + 4,
-      fill: isTarget ? '#f5a623' : 'rgba(255,255,255,0.38)',
+      fill: isTarget ? '#c97d0a' : '#8a8078',
       'font-size': isTarget ? 12 : 10,
       'font-weight': isTarget ? 'bold' : 'normal',
       'font-family': 'Segoe UI, Arial'
