@@ -409,7 +409,7 @@
       <div class="meter-track"><div id="vol-bar"></div></div>
     </div>
 
-    <button id="mic-btn" onclick="toggleMic()">🎤 הפעל מיקרופון</button>
+    <button id="mic-btn" onclick="toggleMic()">🎤 מיקרופון</button>
 
   </div>
 
@@ -536,6 +536,9 @@ function startLevel(lvl) {
   if (isGameMode) updateGameHUD();
   nextNote();
   drawBoard(null, null);
+
+  // Auto-start mic — the level button click counts as a user gesture
+  if (!listening) startMic();
 }
 
 function nextNote() {
@@ -819,7 +822,7 @@ function stopMic() {
   if (audioCtx) { audioCtx.close(); audioCtx = null; }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   analyser = null;
-  document.getElementById('mic-btn').textContent = '🎤 הפעל מיקרופון';
+  document.getElementById('mic-btn').textContent = '🎤 מיקרופון';
   document.getElementById('mic-btn').classList.remove('on');
   document.getElementById('vol-bar').style.width = '0%';
 }
@@ -838,7 +841,7 @@ function detectLoop() {
   document.getElementById('vol-bar').style.width = Math.min(rms * 400, 100) + '%';
 
   const freq = autoCorrelate(buf, audioCtx.sampleRate);
-  const LOUD = rms > 0.012;
+  const LOUD = rms > 0.006; // lower threshold — high strings are quieter
 
   if (freq > 0 && LOUD && targetNote) {
     const detMidi = freqToMidi(freq);
@@ -876,41 +879,70 @@ function detectLoop() {
   raf = requestAnimationFrame(detectLoop);
 }
 
-// ACF2+ autocorrelation pitch detector
+// McLeod Pitch Method (MPM) — much more robust for guitar, especially high notes
 function autoCorrelate(buf, sr) {
+  const N = buf.length;
+
+  // RMS check — lower threshold so quiet high strings register
   let rms = 0;
-  for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
-  rms = Math.sqrt(rms / buf.length);
-  if (rms < 0.006) return -1;
+  for (let i = 0; i < N; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / N);
+  if (rms < 0.003) return -1;
 
-  let s = 0, e = buf.length - 1;
-  for (let i = 0; i < buf.length/2; i++) { if (Math.abs(buf[i])   < 0.15) { s = i; break; } }
-  for (let i = 1; i < buf.length/2; i++) { if (Math.abs(buf[buf.length-i]) < 0.15) { e = buf.length-i; break; } }
+  const half = Math.floor(N / 2);
 
-  const clip = buf.slice(s, e);
-  const N    = clip.length;
-  const C    = new Float32Array(N);
+  // ── Step 1: Normalized Square Difference Function (NSDF) ──
+  // nsdf[tau] = 2*acf[tau] / (sum(x[i]^2, 0..N-tau-1) + sum(x[i+tau]^2, 0..N-tau-1))
+  // Running energy: start with full signal energy × 2, subtract as tau grows
+  let m = 0;
+  for (let i = 0; i < N; i++) m += 2 * buf[i] * buf[i];
 
-  for (let lag = 0; lag < N; lag++) {
-    for (let j = 0; j < N - lag; j++) C[lag] += clip[j] * clip[j+lag];
+  const nsdf = new Float32Array(half);
+  for (let tau = 0; tau < half; tau++) {
+    if (tau > 0) {
+      m -= buf[tau - 1] * buf[tau - 1] + buf[N - tau] * buf[N - tau];
+    }
+    if (m < 1e-8) { nsdf[tau] = 0; continue; }
+    let acf = 0;
+    for (let i = 0; i < N - tau; i++) acf += buf[i] * buf[i + tau];
+    nsdf[tau] = (2 * acf) / m;
   }
 
-  let d = 0;
-  while (d < N-1 && C[d] > C[d+1]) d++;
+  // ── Step 2: Find key maxima (peaks in positive regions) ──
+  const keyMaxima = []; // [tau, value]
+  let inPositive = false;
+  let localMax = 0, localMaxTau = -1;
 
-  let mx = -1, mxp = -1;
-  for (let i = d; i < N; i++) { if (C[i] > mx) { mx = C[i]; mxp = i; } }
+  for (let tau = 1; tau < half; tau++) {
+    if (nsdf[tau] > 0) {
+      inPositive = true;
+      if (nsdf[tau] > localMax) { localMax = nsdf[tau]; localMaxTau = tau; }
+    } else if (inPositive) {
+      // just left a positive region — record peak
+      if (localMaxTau > 0) keyMaxima.push([localMaxTau, localMax]);
+      inPositive = false; localMax = 0; localMaxTau = -1;
+    }
+  }
+  if (inPositive && localMaxTau > 0) keyMaxima.push([localMaxTau, localMax]);
 
-  if (mxp < 2 || mxp >= N-1) return -1;
+  if (keyMaxima.length === 0) return -1;
 
-  let T0 = mxp;
-  const x1 = C[T0-1], x2 = C[T0], x3 = C[T0+1];
-  const a  = (x1 + x3 - 2*x2) / 2;
-  const b  = (x3 - x1) / 2;
-  if (a) T0 -= b / (2*a);
+  // ── Step 3: Pick best tau — first peak ≥ 80% of global max ──
+  const globalMax = Math.max(...keyMaxima.map(([, v]) => v));
+  const K = 0.8; // tolerance
+  let bestTau = -1;
+  for (const [tau, val] of keyMaxima) {
+    if (val >= K * globalMax) { bestTau = tau; break; }
+  }
+  if (bestTau < 2 || bestTau >= half - 1) return -1;
 
-  const f = sr / T0;
-  return (f >= 72 && f <= 1320) ? f : -1;
+  // ── Step 4: Parabolic interpolation for sub-sample precision ──
+  const v0 = nsdf[bestTau - 1], v1 = nsdf[bestTau], v2 = nsdf[bestTau + 1];
+  const denom = 2 * (2 * v1 - v0 - v2);
+  const T0 = denom !== 0 ? bestTau + (v2 - v0) / denom : bestTau;
+
+  const freq = sr / T0;
+  return (freq >= 72 && freq <= 1320) ? freq : -1;
 }
 
 // ═══════════════════════════════════════════════
