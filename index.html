@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎸 Guitar Note Trainer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(160deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    color: #e8e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+    direction: rtl;
+  }
+
+  h1 {
+    font-size: 2em;
+    color: #f5a623;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .tagline { color: #888; font-size: 0.9em; margin-bottom: 32px; }
+
+  #app { width: 100%; max-width: 840px; }
+
+  /* ── Level Screen ── */
+  #level-screen h2 { text-align: center; margin-bottom: 20px; font-size: 1.3em; color: #ccc; }
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .lvl-btn {
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.12);
+    color: #e0e0f0;
+    padding: 20px 12px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .lvl-btn:hover {
+    background: rgba(245,166,35,0.15);
+    border-color: #f5a623;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245,166,35,0.2);
+  }
+  .lvl-btn .sname { font-size: 1.4em; font-weight: bold; color: #f5a623; display: block; }
+  .lvl-btn .sdesc { font-size: 0.82em; color: #aaa; }
+  .lvl-btn.all-btn { grid-column: 1 / -1; padding: 16px; }
+  .lvl-btn.all-btn .sname { font-size: 1.2em; }
+
+  /* ── Game Screen ── */
+  #game-screen { display: none; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .back-btn {
+    background: none;
+    border: 1px solid #555;
+    color: #aaa;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9em;
+    transition: all 0.2s;
+  }
+  .back-btn:hover { border-color: #f5a623; color: #f5a623; }
+
+  .score-box { font-size: 0.9em; color: #aaa; text-align: center; }
+  .score-box b { color: #f5a623; }
+
+  #level-label { font-size: 0.95em; color: #f5a623; font-weight: bold; }
+
+  /* Prompt card */
+  .prompt-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 28px 20px 20px;
+    text-align: center;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .prompt-label { color: #888; font-size: 0.95em; margin-bottom: 6px; }
+
+  #target-note {
+    font-size: 5em;
+    font-weight: 900;
+    color: #f5a623;
+    line-height: 1;
+    letter-spacing: -2px;
+    text-shadow: 0 0 40px rgba(245,166,35,0.4);
+    transition: all 0.3s;
+  }
+
+  .prompt-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    margin: 10px 0 4px;
+  }
+
+  #detected-display {
+    margin-top: 8px;
+    height: 22px;
+    font-size: 0.9em;
+    color: #888;
+  }
+
+  /* Feedback */
+  #feedback-zone {
+    text-align: center;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  #feedback-msg { font-size: 1.6em; font-weight: bold; transition: all 0.3s; }
+  .fb-ok  { color: #4caf50; }
+  .fb-bad { color: #ef5350; }
+
+  /* Fretboard */
+  #fretboard-wrap {
+    background: rgba(0,0,0,0.25);
+    border-radius: 14px;
+    padding: 18px 10px 24px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    direction: ltr;
+  }
+  #fb { display: block; margin: 0 auto; }
+
+  /* Volume meter */
+  .meter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .meter-label { font-size: 0.78em; color: #666; white-space: nowrap; }
+  .meter-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #vol-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    border-radius: 3px;
+    transition: width 0.08s;
+  }
+
+  /* Mic button */
+  #mic-btn {
+    display: block;
+    margin: 0 auto;
+    padding: 14px 44px;
+    background: linear-gradient(135deg, #e94560, #c0392b);
+    border: none;
+    color: white;
+    font-size: 1.05em;
+    font-family: inherit;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(233,69,96,0.35);
+  }
+  #mic-btn:hover { transform: scale(1.04); box-shadow: 0 6px 28px rgba(233,69,96,0.5); }
+  #mic-btn.on {
+    background: linear-gradient(135deg, #388e3c, #4caf50);
+    box-shadow: 0 4px 20px rgba(76,175,80,0.4);
+    animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%,100% { box-shadow: 0 4px 20px rgba(76,175,80,0.3); }
+    50%      { box-shadow: 0 4px 30px rgba(76,175,80,0.7); }
+  }
+
+  /* Celebration */
+  @keyframes pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+  .celebrate { animation: pop 0.4s ease; }
+
+  /* ── Mode Toggle ── */
+  .mode-toggle {
+    display: flex; gap: 10px; justify-content: center; margin-bottom: 22px;
+  }
+  .mode-btn {
+    padding: 10px 28px;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: #aaa;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1em;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: rgba(245,166,35,0.18);
+    border-color: #f5a623;
+    color: #f5a623;
+    font-weight: bold;
+  }
+  .mode-btn:hover { border-color: #f5a623; color: #f5a623; }
+
+  /* ── Game HUD ── */
+  #game-hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 10px 22px;
+    margin-bottom: 14px;
+  }
+  .game-progress { font-size: 1.3em; color: #ccc; }
+  .game-progress b { color: #f5a623; font-size: 1.5em; }
+  #timer-wrap {
+    position: relative; width: 64px; height: 64px;
+  }
+  #timer-num {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5em;
+    font-weight: 900;
+    color: #4caf50;
+    transition: color 0.4s;
+  }
+
+  /* ── Results ── */
+  #results-screen {
+    text-align: center;
+    padding: 30px 16px 20px;
+  }
+  #res-emoji { font-size: 4.5em; margin-bottom: 10px; }
+  #res-title { color: #f5a623; font-size: 1.8em; margin-bottom: 28px; }
+  .res-scores {
+    display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;
+  }
+  .res-item {
+    font-size: 1.2em;
+    padding: 18px 30px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .res-item b { font-size: 1.8em; display: block; margin-top: 4px; }
+  .res-item.ok  b { color: #4caf50; }
+  .res-item.bad b { color: #ef5350; }
+  .res-of { font-size: 0.8em; color: #666; }
+  .res-buttons { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+  .res-btn {
+    padding: 14px 36px;
+    border-radius: 30px;
+    font-family: inherit;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255,255,255,0.08);
+    color: #ccc;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .res-btn.primary {
+    background: linear-gradient(135deg, #f5a623, #e0911a);
+    color: #111;
+    font-weight: bold;
+    border: none;
+    box-shadow: 0 4px 18px rgba(245,166,35,0.35);
+  }
+  .res-btn:hover { transform: scale(1.04); }
+
+  /* Responsive */
+  @media (max-width: 500px) {
+    .level-grid { grid-template-columns: repeat(2, 1fr); }
+    #target-note { font-size: 3.5em; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎸 Guitar Note Trainer</h1>
+<p class="tagline">אימון תווים — בנה את מפת הגריף שלך</p>
+
+<div id="app">
+
+  <!-- ══ Level Selection ══ -->
+  <div id="level-screen">
+    <h2>בחר מיתר להתחיל</h2>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-normal" onclick="setMode(false)">🎓 תרגול חופשי</button>
+      <button class="mode-btn" id="btn-game" onclick="setMode(true)">⚡ מצב משחק</button>
+    </div>
+    <div class="level-grid">
+      <button class="lvl-btn" onclick="startLevel(1)"><span class="sname">מיתר 1</span><span class="sdesc">מי גבוה · E4</span></button>
+      <button class="lvl-btn" onclick="startLevel(2)"><span class="sname">מיתר 2</span><span class="sdesc">סי · B3</span></button>
+      <button class="lvl-btn" onclick="startLevel(3)"><span class="sname">מיתר 3</span><span class="sdesc">סול · G3</span></button>
+      <button class="lvl-btn" onclick="startLevel(4)"><span class="sname">מיתר 4</span><span class="sdesc">רה · D3</span></button>
+      <button class="lvl-btn" onclick="startLevel(5)"><span class="sname">מיתר 5</span><span class="sdesc">לה · A2</span></button>
+      <button class="lvl-btn" onclick="startLevel(6)"><span class="sname">מיתר 6</span><span class="sdesc">מי נמוך · E2</span></button>
+      <button class="lvl-btn all-btn" onclick="startLevel(0)"><span class="sname">⚔️ כל המיתרים</span><span class="sdesc">אתגר מלא — כל הגריף</span></button>
+    </div>
+  </div>
+
+  <!-- ══ Game Screen ══ -->
+  <div id="game-screen">
+
+    <!-- Game HUD (shown only in game mode) -->
+    <div id="game-hud" style="display:none;">
+      <div class="game-progress">תו <b id="note-num">1</b><span style="color:#666"> / 10</span></div>
+      <div id="timer-wrap">
+        <svg viewBox="0 0 64 64" width="64" height="64">
+          <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/>
+          <circle id="timer-arc" cx="32" cy="32" r="27" fill="none" stroke="#4caf50" stroke-width="5"
+            stroke-dasharray="169.6" stroke-dashoffset="0" stroke-linecap="round"
+            transform="rotate(-90 32 32)"/>
+        </svg>
+        <span id="timer-num">10</span>
+      </div>
+    </div>
+
+    <div class="topbar">
+      <button class="back-btn" onclick="backToMenu()">← תפריט</button>
+      <div class="score-box">✅ <b id="sc-ok">0</b> &nbsp;|&nbsp; ❌ <b id="sc-bad">0</b></div>
+      <div id="level-label"></div>
+    </div>
+
+    <div class="prompt-card">
+      <div class="prompt-label">נגן את התו:</div>
+      <div class="prompt-body">
+        <div id="target-note">—</div>
+        <svg id="string-indicator" width="215" height="122"></svg>
+      </div>
+      <div id="detected-display"></div>
+    </div>
+
+    <div id="feedback-zone"><div id="feedback-msg"></div></div>
+
+    <div id="fretboard-wrap"><svg id="fb"></svg></div>
+
+    <div class="meter-row">
+      <span class="meter-label">🎙️ עוצמה</span>
+      <div class="meter-track"><div id="vol-bar"></div></div>
+    </div>
+
+    <button id="mic-btn" onclick="toggleMic()">🎤 הפעל מיקרופון</button>
+
+  </div>
+
+  <!-- ══ Results Screen ══ -->
+  <div id="results-screen" style="display:none;">
+    <div id="res-emoji">🌟</div>
+    <h2 id="res-title">מושלם!</h2>
+    <div class="res-scores">
+      <div class="res-item ok">✅ נכון &nbsp;<b id="res-ok">0</b><span class="res-of">/10</span></div>
+      <div class="res-item bad">❌ שגוי &nbsp;<b id="res-bad">0</b><span class="res-of">/10</span></div>
+    </div>
+    <div class="res-buttons">
+      <button class="res-btn primary" onclick="replayGame()">⚡ שחק שוב</button>
+      <button class="res-btn" onclick="backToMenu()">← תפריט</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════
+
+const HE_NOTES = ['דו','דו♯','רה','רה♯','מי','פה','פה♯','סול','סול♯','לה','לה♯','סי'];
+// index 0=C, 1=C#, 2=D, 3=D#, 4=E, 5=F, 6=F#, 7=G, 8=G#, 9=A, 10=A#, 11=B
+
+// Open-string MIDI for strings 1-6
+const OPEN_MIDI = [64, 59, 55, 50, 45, 40];
+const STRING_LABELS   = ['מיתר 1 (מי גבוה)', 'מיתר 2 (סי)', 'מיתר 3 (סול)', 'מיתר 4 (רה)', 'מיתר 5 (לה)', 'מיתר 6 (מי נמוך)'];
+const STRING_SHORT    = ['E4','B3','G3','D3','A2','E2'];
+const STRING_HE_FULL  = ['מי גבוה','סי','סול','רה','לה','מי נמוך'];
+
+const MAX_FRET = 11;
+
+// Fretboard SVG layout
+const FB = { x0:56, y0:14, w:700, h:126, nutW:10 };
+// strings at y0, y0+h/5, ..., y0+h (6 strings, spacing = h/5)
+// frets at x0, x0+w/12, ..., x0+w  (13 fret lines for frets 0-12)
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+
+let currentLevel   = 1;
+let targetNote     = null;  // { name, string, fret }
+let scoreOk        = 0;
+let scoreBad       = 0;
+let listening      = false;
+let cooldown       = false;
+let audioCtx       = null;
+let analyser       = null;
+let raf            = null;
+let micStream      = null;
+
+// Detection accumulators
+let confirmCount   = 0;  // frames where correct note detected
+let wrongCount     = 0;  // frames where same wrong note held
+let lastWrong      = -1; // MIDI of last wrong note (-1 = none)
+let graceFr        = 0;  // grace frames after new note shown
+
+// ── Game mode ──
+let isGameMode    = false;
+let gameNotesDone = 0;
+let gameTimeLeft  = 0;
+let gameInterval  = null;
+const GAME_TOTAL  = 10;
+const GAME_SECS   = 10;
+
+const CONFIRM_THR  = 4;   // frames for "correct"
+const WRONG_THR    = 20;  // frames for "this is definitely wrong" (~0.33s)
+const GRACE_FR     = 25;  // ~0.4s grace after new note
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+
+function midiNote(midi)       { return HE_NOTES[((midi % 12) + 12) % 12]; }
+function freqToMidi(f)        { return Math.round(12 * Math.log2(f / 440) + 69); }
+function getNote(str, fret)   { return midiNote(OPEN_MIDI[str - 1] + fret); }
+
+function activeStrings() {
+  return currentLevel === 0 ? [1,2,3,4,5,6] : [currentLevel];
+}
+
+function randomTarget() {
+  const strs = activeStrings();
+  const s = strs[Math.floor(Math.random() * strs.length)];
+  const f = Math.floor(Math.random() * (MAX_FRET + 1));
+  const midi = OPEN_MIDI[s - 1] + f;
+  return { name: midiNote(midi), string: s, fret: f, midi };
+}
+
+// All positions of a note name on given strings (frets 0-12)
+function notePositions(name, strings) {
+  const res = [];
+  strings.forEach(s => {
+    for (let f = 0; f <= MAX_FRET; f++) {
+      if (getNote(s, f) === name) res.push({ s, f });
+    }
+  });
+  return res;
+}
+
+// ═══════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════
+
+function startLevel(lvl) {
+  currentLevel  = lvl;
+  scoreOk       = 0;
+  scoreBad      = 0;
+  gameNotesDone = 0;
+  updateScore();
+
+  document.getElementById('level-screen').style.display    = 'none';
+  document.getElementById('results-screen').style.display  = 'none';
+  document.getElementById('game-screen').style.display     = 'block';
+  document.getElementById('game-hud').style.display        = isGameMode ? 'flex' : 'none';
+
+  const lbl = lvl === 0 ? 'כל המיתרים' : STRING_LABELS[lvl - 1];
+  document.getElementById('level-label').textContent = lbl;
+
+  if (isGameMode) updateGameHUD();
+  nextNote();
+  drawBoard(null, null);
+}
+
+function nextNote() {
+  // Avoid showing same note twice in a row
+  let t;
+  do { t = randomTarget(); } while (targetNote && t.name === targetNote.name);
+  targetNote = t;
+
+  cooldown = false;
+  confirmCount = 0;
+  wrongCount   = 0;
+  lastWrong    = -1;
+  graceFr      = GRACE_FR;
+
+  document.getElementById('target-note').textContent  = targetNote.name;
+  document.getElementById('feedback-msg').textContent  = '';
+  document.getElementById('feedback-msg').className    = '';
+  document.getElementById('detected-display').textContent = '';
+
+  drawBoard(null, null); // hide dots until played
+  updateStringIndicator();
+  if (isGameMode) startGameTimer();
+}
+
+function onCorrect() {
+  if (cooldown) return;
+  cooldown = true;
+  scoreOk++;
+  updateScore();
+  playCorrect();
+
+  const el = document.getElementById('target-note');
+  el.classList.add('celebrate');
+  setTimeout(() => el.classList.remove('celebrate'), 400);
+
+  showFeedback('✅ נכון! 🎉', 'fb-ok');
+  drawBoard('correct', null);
+  if (isGameMode) {
+    clearGameTimer();
+    advanceGame(900);
+  } else {
+    setTimeout(nextNote, 1600);
+  }
+}
+
+function onWrong(played) {
+  if (cooldown) return;
+  // Show feedback + correct position, but don't advance — let them keep trying
+  cooldown = true;
+  scoreBad++;
+  updateScore();
+  playWrong();
+  showFeedback(`❌ נגנת ${played} — הנה המיקום הנכון:`, 'fb-bad');
+  drawBoard('wrong', played);
+
+  if (isGameMode) {
+    clearGameTimer();
+    advanceGame(2000);
+  } else {
+    setTimeout(() => {
+      cooldown   = false;
+      wrongCount = 0;
+      lastWrong  = -1;
+      graceFr    = GRACE_FR;
+      showFeedback('', '');
+      drawBoard(null, null);
+    }, 3000);
+  }
+}
+
+function showFeedback(msg, cls) {
+  const el = document.getElementById('feedback-msg');
+  el.textContent = msg;
+  el.className   = cls;
+}
+
+function updateScore() {
+  document.getElementById('sc-ok').textContent  = scoreOk;
+  document.getElementById('sc-bad').textContent = scoreBad;
+}
+
+function backToMenu() {
+  stopMic();
+  clearGameTimer();
+  document.getElementById('game-screen').style.display    = 'none';
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('level-screen').style.display   = 'block';
+  targetNote = null;
+}
+
+// ═══════════════════════════════════════════════
+//  FRETBOARD DRAWING
+// ═══════════════════════════════════════════════
+
+function svgEl(tag, attrs, text) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+function drawBoard(state, played) {
+  // state: null = hide dots, 'correct' = green, 'wrong' = show correct in green
+  const svg = document.getElementById('fb');
+  svg.innerHTML = '';
+  svg.setAttribute('width',  FB.x0 + FB.w + 16);
+  svg.setAttribute('height', FB.y0 + FB.h + 28);
+
+  const fW = FB.w / MAX_FRET;                  // fret width
+  const sS = FB.h / 5;                         // string spacing
+
+  // Wood background
+  svg.appendChild(svgEl('rect', { x:FB.x0-FB.nutW, y:FB.y0-4, width:FB.w+FB.nutW+4, height:FB.h+8,
+    rx:5, fill:'#b8885a' }));
+  svg.appendChild(svgEl('rect', { x:FB.x0, y:FB.y0, width:FB.w, height:FB.h,
+    fill:'#c9995f' }));
+
+  // Inlay markers
+  [3,5,7,9,12].forEach(f => {
+    const cx = FB.x0 + (f - 0.5) * fW;
+    if (f === 12) {
+      [-1,1].forEach(d => svg.appendChild(svgEl('circle',
+        { cx, cy: FB.y0 + FB.h/2 + d*sS, r:5, fill:'rgba(0,0,0,0.18)' })));
+    } else {
+      svg.appendChild(svgEl('circle',
+        { cx, cy: FB.y0 + FB.h/2, r:5, fill:'rgba(0,0,0,0.18)' }));
+    }
+  });
+
+  // Fret wires
+  for (let f = 1; f <= MAX_FRET; f++) {
+    const x = FB.x0 + f * fW;
+    svg.appendChild(svgEl('line', { x1:x, y1:FB.y0, x2:x, y2:FB.y0+FB.h,
+      stroke:'#7a5c3a', 'stroke-width': f === 12 ? 3 : 2 }));
+  }
+
+  // Nut
+  svg.appendChild(svgEl('rect', { x:FB.x0-FB.nutW, y:FB.y0-2, width:FB.nutW, height:FB.h+4,
+    fill:'#f0ede0', rx:2 }));
+
+  // Strings
+  for (let s = 0; s < 6; s++) {
+    const y = FB.y0 + s * sS;
+    const sw = 0.8 + s * 0.55;
+    svg.appendChild(svgEl('line', { x1:FB.x0-FB.nutW, y1:y, x2:FB.x0+FB.w, y2:y,
+      stroke:'#2a1a0a', 'stroke-width': sw }));
+  }
+
+  // Fret numbers
+  for (let f = 0; f <= MAX_FRET; f++) {
+    const x = f === 0 ? FB.x0 - FB.nutW/2 : FB.x0 + (f-0.5)*fW;
+    svg.appendChild(svgEl('text',
+      { x, y: FB.y0+FB.h+20, 'text-anchor':'middle', fill:'#aaa', 'font-size':11, 'font-family':'monospace' },
+      f.toString()));
+  }
+
+  // String labels (left)
+  for (let s = 0; s < 6; s++) {
+    svg.appendChild(svgEl('text', {
+      x: FB.x0-FB.nutW-6, y: FB.y0+s*sS+4,
+      'text-anchor':'end', fill:'#9a8a7a', 'font-size':11, 'font-family':'monospace'
+    }, STRING_SHORT[s]));
+  }
+
+  // ── Dots ── always show only the single target position
+  if (state && targetNote) {
+    const positions = [{ s: targetNote.string, f: targetNote.fret }];
+
+    positions.forEach(({ s, f }) => {
+      const cx = f === 0 ? FB.x0 - FB.nutW/2 : FB.x0 + (f-0.5)*fW;
+      const cy = FB.y0 + (s-1)*sS;
+
+      const fill = state === 'correct' ? '#4caf50' : '#4caf50';  // both show green correct pos
+      const shadow = state === 'correct' ? 'rgba(76,175,80,0.6)' : 'rgba(76,175,80,0.5)';
+
+      // glow ring
+      svg.appendChild(svgEl('circle', { cx, cy, r:16,
+        fill:shadow, opacity:0.45 }));
+      // main dot
+      svg.appendChild(svgEl('circle', { cx, cy, r:12, fill }));
+      // note name
+      svg.appendChild(svgEl('text', {
+        x:cx, y:cy+4, 'text-anchor':'middle', fill:'white',
+        'font-size':9, 'font-weight':'bold', 'font-family':'Arial'
+      }, targetNote.name));
+
+      // icon badge
+      const icon = state === 'correct' ? '✓' : '!';
+      const iconFill = state === 'correct' ? '#fff' : '#fff';
+      svg.appendChild(svgEl('circle', { cx: cx+14, cy: cy-14, r:8,
+        fill: state === 'correct' ? '#2e7d32' : '#e53935' }));
+      svg.appendChild(svgEl('text', {
+        x: cx+14, y: cy-10, 'text-anchor':'middle', fill:iconFill,
+        'font-size':10, 'font-weight':'bold'
+      }, icon));
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  SOUND FEEDBACK
+// ═══════════════════════════════════════════════
+
+function playCorrect() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // C5 → E5 → G5  (major chord arpeggio — bright and pleasant)
+    [[523.25, 0, 0.18], [659.25, 0.16, 0.22], [783.99, 0.30, 0.38]].forEach(([f, t, dur]) => {
+      const osc = ctx.createOscillator();
+      const g   = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      g.gain.setValueAtTime(0, ctx.currentTime + t);
+      g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + dur);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + dur + 0.05);
+    });
+    setTimeout(() => ctx.close(), 1200);
+  } catch(e) {}
+}
+
+function playWrong() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Soft descending tone — 260→140 Hz, quiet and low
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(260, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.38);
+    g.gain.setValueAtTime(0.2, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.42);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.48);
+    setTimeout(() => ctx.close(), 800);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+//  AUDIO / PITCH DETECTION
+// ═══════════════════════════════════════════════
+
+async function toggleMic() {
+  if (listening) { stopMic(); }
+  else           { await startMic(); }
+}
+
+async function startMic() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+    audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+    analyser  = audioCtx.createAnalyser();
+    analyser.fftSize = 4096;
+    const src = audioCtx.createMediaStreamSource(micStream);
+    src.connect(analyser);
+    listening = true;
+    const btn = document.getElementById('mic-btn');
+    btn.textContent = '🔴 עצור האזנה';
+    btn.classList.add('on');
+    detectLoop();
+  } catch(e) {
+    alert('לא ניתן לגשת למיקרופון.\nאנא אשר הרשאה בדפדפן ונסה שוב.');
+  }
+}
+
+function stopMic() {
+  listening = false;
+  if (raf) cancelAnimationFrame(raf);
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  analyser = null;
+  document.getElementById('mic-btn').textContent = '🎤 הפעל מיקרופון';
+  document.getElementById('mic-btn').classList.remove('on');
+  document.getElementById('vol-bar').style.width = '0%';
+}
+
+function detectLoop() {
+  if (!listening || !analyser) return;
+
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+
+  // RMS volume
+  let rms = 0;
+  for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
+  rms = Math.sqrt(rms / buf.length);
+
+  document.getElementById('vol-bar').style.width = Math.min(rms * 400, 100) + '%';
+
+  const freq = autoCorrelate(buf, audioCtx.sampleRate);
+  const LOUD = rms > 0.012;
+
+  if (freq > 0 && LOUD && targetNote) {
+    const detMidi = freqToMidi(freq);
+    const detName = midiNote(detMidi);
+    // Exact MIDI match — Math.round already gives ~±25 cent natural tolerance
+    const midiMatch = detMidi === targetNote.midi;
+    // Same note name but wrong octave?
+    const sameNameWrongOctave = !midiMatch && (detName === targetNote.name);
+
+    let displayText = `מזוהה: ${detName}`;
+    if (sameNameWrongOctave) displayText += ' — אוקטבה שגויה!';
+    document.getElementById('detected-display').textContent = displayText;
+
+    if (graceFr > 0) { graceFr--; }
+    else if (!cooldown) {
+      if (midiMatch) {
+        confirmCount++;
+        wrongCount = 0; lastWrong = -1;
+        if (confirmCount >= CONFIRM_THR) onCorrect();
+      } else {
+        confirmCount = 0;
+        if (detMidi === lastWrong) {
+          wrongCount++;
+          if (wrongCount >= WRONG_THR) onWrong(detName);
+        } else {
+          lastWrong = detMidi; wrongCount = 1;
+        }
+      }
+    }
+  } else if (!LOUD) {
+    if (!cooldown) { confirmCount = 0; wrongCount = 0; }
+    document.getElementById('detected-display').textContent = '';
+  }
+
+  raf = requestAnimationFrame(detectLoop);
+}
+
+// ACF2+ autocorrelation pitch detector
+function autoCorrelate(buf, sr) {
+  let rms = 0;
+  for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
+  rms = Math.sqrt(rms / buf.length);
+  if (rms < 0.006) return -1;
+
+  let s = 0, e = buf.length - 1;
+  for (let i = 0; i < buf.length/2; i++) { if (Math.abs(buf[i])   < 0.15) { s = i; break; } }
+  for (let i = 1; i < buf.length/2; i++) { if (Math.abs(buf[buf.length-i]) < 0.15) { e = buf.length-i; break; } }
+
+  const clip = buf.slice(s, e);
+  const N    = clip.length;
+  const C    = new Float32Array(N);
+
+  for (let lag = 0; lag < N; lag++) {
+    for (let j = 0; j < N - lag; j++) C[lag] += clip[j] * clip[j+lag];
+  }
+
+  let d = 0;
+  while (d < N-1 && C[d] > C[d+1]) d++;
+
+  let mx = -1, mxp = -1;
+  for (let i = d; i < N; i++) { if (C[i] > mx) { mx = C[i]; mxp = i; } }
+
+  if (mxp < 2 || mxp >= N-1) return -1;
+
+  let T0 = mxp;
+  const x1 = C[T0-1], x2 = C[T0], x3 = C[T0+1];
+  const a  = (x1 + x3 - 2*x2) / 2;
+  const b  = (x3 - x1) / 2;
+  if (a) T0 -= b / (2*a);
+
+  const f = sr / T0;
+  return (f >= 72 && f <= 1320) ? f : -1;
+}
+
+// ═══════════════════════════════════════════════
+//  GAME MODE
+// ═══════════════════════════════════════════════
+
+function setMode(gameMode) {
+  isGameMode = gameMode;
+  document.getElementById('btn-normal').classList.toggle('active', !gameMode);
+  document.getElementById('btn-game').classList.toggle('active',  gameMode);
+}
+
+function startGameTimer() {
+  clearGameTimer();
+  gameTimeLeft = GAME_SECS;
+  updateTimerDisplay();
+  gameInterval = setInterval(() => {
+    gameTimeLeft--;
+    updateTimerDisplay();
+    if (gameTimeLeft <= 0) { clearGameTimer(); onTimeUp(); }
+  }, 1000);
+}
+
+function clearGameTimer() {
+  if (gameInterval) { clearInterval(gameInterval); gameInterval = null; }
+}
+
+function onTimeUp() {
+  if (cooldown) return;
+  cooldown = true;
+  scoreBad++;
+  updateScore();
+  playWrong();
+  showFeedback('⏱️ נגמר הזמן — המיקום הנכון:', 'fb-bad');
+  drawBoard('wrong', null);
+  advanceGame(2000);
+}
+
+function advanceGame(delay) {
+  gameNotesDone++;
+  if (gameNotesDone >= GAME_TOTAL) {
+    setTimeout(showResults, delay);
+  } else {
+    setTimeout(() => { nextNote(); updateGameHUD(); }, delay);
+  }
+}
+
+function updateGameHUD() {
+  const el = document.getElementById('note-num');
+  if (el) el.textContent = gameNotesDone + 1;
+}
+
+function updateTimerDisplay() {
+  const numEl = document.getElementById('timer-num');
+  const arcEl = document.getElementById('timer-arc');
+  if (!numEl || !arcEl) return;
+  numEl.textContent = gameTimeLeft;
+  const circ   = 2 * Math.PI * 27;
+  const offset = circ * (1 - gameTimeLeft / GAME_SECS);
+  arcEl.setAttribute('stroke-dashoffset', offset);
+  const col = gameTimeLeft > 6 ? '#4caf50' : gameTimeLeft > 3 ? '#f5a623' : '#ef5350';
+  arcEl.setAttribute('stroke', col);
+  numEl.style.color = col;
+}
+
+function showResults() {
+  stopMic();
+  clearGameTimer();
+  document.getElementById('game-screen').style.display    = 'none';
+  document.getElementById('results-screen').style.display = 'block';
+  document.getElementById('res-ok').textContent  = scoreOk;
+  document.getElementById('res-bad').textContent = scoreBad;
+  let emoji, title;
+  if      (scoreOk === 10) { emoji = '🌟'; title = 'מושלם! עשרה מתוך עשרה!'; }
+  else if (scoreOk >= 8)   { emoji = '🎸'; title = 'מצוין!'; }
+  else if (scoreOk >= 6)   { emoji = '👍'; title = 'יפה מאוד!'; }
+  else if (scoreOk >= 4)   { emoji = '💪'; title = 'ממשיכים להתאמן!'; }
+  else                     { emoji = '🎓'; title = 'שווה לתרגל עוד קצת!'; }
+  document.getElementById('res-emoji').textContent = emoji;
+  document.getElementById('res-title').textContent = title;
+}
+
+function replayGame() {
+  document.getElementById('results-screen').style.display = 'none';
+  startLevel(currentLevel);
+}
+
+// ═══════════════════════════════════════════════
+//  STRING INDICATOR
+// ═══════════════════════════════════════════════
+
+function updateStringIndicator() {
+  const svg = document.getElementById('string-indicator');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  const yStart = 13, yStep = 17;
+  const lineX1 = 18, lineX2 = 130;
+
+  // subtle background
+  svg.appendChild(svgEl('rect', { x:0, y:0, width:215, height:122, rx:10,
+    fill:'rgba(0,0,0,0.28)', stroke:'rgba(255,255,255,0.07)', 'stroke-width':1 }));
+
+  for (let i = 0; i < 6; i++) {
+    const y = yStart + i * yStep;
+    const isTarget = targetNote && (i + 1) === targetNote.string;
+    const col = isTarget ? '#f5a623' : 'rgba(255,255,255,0.22)';
+    const sw  = isTarget ? 3.5 : (0.65 + i * 0.28);
+
+    // glow behind target
+    if (isTarget) {
+      svg.appendChild(svgEl('line', {
+        x1: lineX1-2, y1: y, x2: lineX2+2, y2: y,
+        stroke:'rgba(245,166,35,0.28)', 'stroke-width':12
+      }));
+    }
+
+    // string line
+    svg.appendChild(svgEl('line', {
+      x1:lineX1, y1:y, x2:lineX2, y2:y,
+      stroke:col, 'stroke-width':sw
+    }));
+
+    // triangle arrow for target
+    if (isTarget) {
+      svg.appendChild(svgEl('polygon', {
+        points:`${lineX1-11},${y-5} ${lineX1-2},${y} ${lineX1-11},${y+5}`,
+        fill:'#f5a623'
+      }));
+    }
+
+    // Hebrew label
+    svg.appendChild(svgEl('text', {
+      x: lineX2 + 9, y: y + 4,
+      fill: isTarget ? '#f5a623' : 'rgba(255,255,255,0.38)',
+      'font-size': isTarget ? 12 : 10,
+      'font-weight': isTarget ? 'bold' : 'normal',
+      'font-family': 'Segoe UI, Arial'
+    }, `${i+1}. ${STRING_HE_FULL[i]}`));
+  }
+}
+
+// ── init ──
+drawBoard(null, null);
+updateStringIndicator();
+</script>
+</body>
+</html>
